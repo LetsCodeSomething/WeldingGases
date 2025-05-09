@@ -479,17 +479,10 @@ if not params.left_json:
 if not params.right_json:
     sys.exit("The second input file is not specified. Exiting.")
 
-if not params.output:
-    params.output = "output.txt"
+json_l = pickle.loads(params.left_json.read())
+json_r = pickle.loads(params.right_json.read())
 
-input_file_l = open(params.left_json, "rb")
-json_l = pickle.loads(input_file_l.read())
-input_file_l.close()
-input_file_r = open(params.right_json, "rb")
-json_r = pickle.loads(input_file_r.read())
-input_file_r.close()
-
-output_file = open(params.output, "w", encoding="utf-8")
+output_file = params.output if params.output else open("output.txt", "w", encoding="utf-8")
 
 log = UJSONC.compare_json(json_l, json_r)
 if log[0]:
