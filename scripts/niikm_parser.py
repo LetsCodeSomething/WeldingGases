@@ -190,9 +190,9 @@ python niikm_parser.py -d 3 -o niikm_data -z
 
 Parse https://www.niikm.ru/ web-site and wait 3 seconds between each request to the web-site, save the obtained information on welding gases in \"niikm_data\" directory and compress it into zip archive.""")
 
-params.add_argument("-d", "--request-delay", type=int, help="The delay in seconds between each request to https://www.niikm.ru/. The delay must be greater than or equal to 0 and lesser than or equal to 20 seconds. If the parameter is missing, the delay will default to 3 seconds.");
-params.add_argument("-o", "--output-dir", type=prepare_dir, help="An output directory name. If the parameter is missing, the name will default to \"niikm_data\".");
-params.add_argument("-z", "--zip", action="store_true", help="Compress the output directory into zip archive.");
+params.add_argument("-d", "--request-delay", type=int, help="The delay in seconds between each request to https://www.niikm.ru/. The delay must be greater than or equal to 0 and lesser than or equal to 20 seconds. If the parameter is missing, the delay will default to 3 seconds.")
+params.add_argument("-o", "--output-dir", type=prepare_dir, help="An output directory name. If the parameter is missing, the name will default to \"niikm_data\".")
+params.add_argument("-z", "--zip", action="store_true", help="Compress the output directory into zip archive.")
 
 params = params.parse_args()
 
