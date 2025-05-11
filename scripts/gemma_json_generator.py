@@ -330,9 +330,9 @@ python gemma_json_generator.py -d dataset.zip -k credentials.json -o output.bin
 
 Decompress "dataset.zip" to "dataset", load files from "dataset", load Kaggle credentials from "credentials.json", extract the data using Google Gemma 2b and save the extracted data into the "output.bin".""")
 
-params.add_argument("-d", "--dataset-path", type=str, help="Path to the dataset. Must be a directory or a zip archive.");
-params.add_argument("-k", "--kaggle-credentials-path", type=argparse.FileType('r'), help="Path to JSON file that contains Kaggle username and token.");
-params.add_argument("-o", "--output", type=argparse.FileType('wb'), help="An output binary file name. If the parameter is missing, the name will default to \"gemma_extracted_info.bin\".");
+params.add_argument("-d", "--dataset-path", type=str, help="Path to the dataset. Must be a directory or a zip archive.")
+params.add_argument("-k", "--kaggle-credentials-path", type=argparse.FileType('r'), help="Path to JSON file that contains Kaggle credentials. Credentials have the following structure: {\"username\":\"<STRING>\",\"key\":\"<STRING>\"}")
+params.add_argument("-o", "--output", type=argparse.FileType('wb'), help="An output binary file name. If the parameter is missing, the name will default to \"gemma_extracted_info.bin\".")
 
 params = params.parse_args()
 
@@ -346,20 +346,20 @@ try:
     kaggle_credentials = json.loads(params.kaggle_credentials_path.read())
 except:
     sys.exit("Incorrect Kaggle credentials format. Exiting.")
-
 if not "username" in kaggle_credentials or not "key" in kaggle_credentials:
     sys.exit("Incorrect Kaggle credentials format. Exiting.")
 
-os.environ["KAGGLE_USERNAME"] = kaggle_credentials["username"]
-os.environ["KAGGLE_KEY"] = kaggle_credentials["key"]
-
-gemma_lm = keras_nlp.models.GemmaCausalLM.from_preset("gemma_2b_en")
-
-output_file = params.output if params.output else open("gemma_extracted_info.bin", "wb")
+dataset = None
 try:
     dataset = load_dataset(params.dataset_path)
-    extracted_info = extract_info(gemma_lm, dataset)
-    output_file.write(pickle.dumps(extracted_info))
-    output_file.close()
 except:
-    print("Unable to load the dataset. Exiting.")
+    sys.exit("Unable to load the dataset. Exiting.")
+
+os.environ["KAGGLE_USERNAME"] = kaggle_credentials["username"]
+os.environ["KAGGLE_KEY"] = kaggle_credentials["key"]
+gemma_lm = keras_nlp.models.GemmaCausalLM.from_preset("gemma_2b_en")
+
+output_file = params.output if params.output else open("gemma_extracted_info.bin", "wb")    
+extracted_info = extract_info(gemma_lm, dataset)
+output_file.write(pickle.dumps(extracted_info))
+output_file.close()
