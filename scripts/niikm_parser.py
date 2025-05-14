@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup as bs
 import os
+import sys
 import requests
 import time
 import shutil
@@ -198,7 +199,7 @@ params = params.parse_args()
 
 if params.request_delay:
     if params.request_delay < 0 or params.request_delay > 20:
-        os.exit("The request delay value must be in the range [0; 20]. Exiting.")
+        sys.exit("The request delay value must be in the range [0; 20]. Exiting.")
     else:
         REQUEST_DELAY = params.request_delay
 
