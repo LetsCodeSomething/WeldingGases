@@ -5,8 +5,8 @@
 Каталог ``notebooks`` содержит блокноты Jupyter Notebook (``*.ipynb``), предназначенные для запуска в среде Google Colab, каталог ``scripts`` - скрипты на языке Python (``*.py``), переработанные для запуска на персональном компьютере. В целом содержимое блокнотов и файлов скриптов с одинаковыми названиями совпадает, исключая наличие у скриптов интерфейса, позволяющего передавать им аргументы из командной строки.
 
 В каталоге ``scripts`` предоставлены следующие скрипты:
-* ``niikm_parser.py`` - парсит веб-сайт <https://www.niikm.ru/> и формирует датасет из собранной информации о газах.
-* ``gemma_json_generator.py`` - извлекает информацию из датасета, сформированного скриптом ``niikm_parser.py``, с помощью нейронной сети [Google Gemma 2b](https://www.kaggle.com/models/google/gemma) и сохраняет информацию в упрощённом JSON в двоичный файл с помощью стандартного модуля Python ``pickle``. Обратите внимание, что для работы данного скрипта требуется учётная запись Kaggle.
+* ``niikm_parser.py`` - парсит веб-сайт <https://www.niikm.ru/> и формирует датасет из собранной информации о газах. Для работы этого скрипта необходимы дополнительные библиотеки.
+* ``gemma_json_generator.py`` - извлекает информацию из датасета, сформированного скриптом ``niikm_parser.py``, с помощью нейронной сети [Google Gemma 2b](https://www.kaggle.com/models/google/gemma) и сохраняет информацию в упрощённом JSON в двоичный файл с помощью стандартного модуля Python ``pickle``. Обратите внимание, что для работы данного скрипта требуется учётная запись Kaggle и дополнительные библиотеки.
 * ``json_converter.py`` - преобразует данные в упрощённом JSON в данные в универсальном JSON и сохраняет результат в текстовый файл. Скрипт ожидает, что файл с онтологией базы сварочных газов находится в подкаталоге ``Загрузки`` фонда пользователя платформы, а файл с самой базой - в корневом каталоге.
 * ``json_comparator.py`` - выполняет сравнение произвольных JSON-структур, генерирует пояснение в терминах онтологии к результатам сравнения и сохраняет результат в текстовый файл.
 
@@ -43,18 +43,28 @@
 ]
 ```
 
-# Запуск проекта
+# Системные требования
+Для запуска скриптов требуется:
+* Операционная система Windows 10 и выше.
+* Видеокарта от Nvidia с поддержкой CUDA.
+* Драйвер ``nvidia-smi``.
+* Python версии ``3.10.5`` и выше.
+
+Работоспособность скриптов проверялась под управлением операционной системы Windows 10 ``x64``.
+
+# Запуск и использование
 ## Инструкция для Windows:
-Для запуска проекта необходимо выполнить следующие шаги:
+Для запуска и использования необходимо выполнить следующие шаги:
 1) Загрузить и установить Git: <https://git-scm.com/downloads/win> или <https://gitforwindows.org/>.
 2) Выбрать каталог и клонировать репозиторий командой ``git clone https://github.com/LetsCodeSomething/WeldingGases.git``.
 3) Загрузить и установить Python: <https://www.python.org/downloads/>.
-4) Установить необходимые для работы скриптов библиотеки командой ``python -m pip install beautifulsoup4 requests && python -m pip install -q -U tf-keras keras-nlp==0.10.0 kagglehub>=0.2.4 keras>=3``
-5) Подготовить файл с именем и токеном пользователя Kaggle.
-6) Пройти в подкаталог со скриптами Python командой ``cd <ПУТЬ К РЕПОЗИТОРИЮ>/WeldingGases/scripts``.
-7) Выполнить команду ``python niikm_parser.py --request-delay 2 --output-dir niikm_data && python gemma_json_generator.py --dataset-path niikm_data --kaggle-credentials-path <ФАЙЛ С ДАННЫМИ ПОЛЬЗОВАТЕЛЯ KAGGLE> --output gemma_extracted_info.bin && python json_converter --input gemma_extracted_info.bin --user-email <ЭЛЕКТРОННАЯ ПОЧТА> && python json_comparator.py --left-json gemma_extracted_info.bin --right-json <RIGHT JSON FILE> --output comparison_result.txt``
-
-При успешном выполнении всех шагов будут созданы следующие файлы и каталоги:
-1) ``niikm_data`` - каталог с датасетом с описаниями сварочных газов.
-2) ``gemma_extracted_info.bin`` - извлечённая из датасета с помощью Google Gemma 2b информация в упрощённом формате.
-3) ``comparison_result.txt`` - результат сравнения сгенерированных JSON-структур.
+4) Пройти в каталог с репозиторием командой ``cd <ПУТЬ К РЕПОЗИТОРИЮ>\WeldingGases``.
+5) Создать виртуальную среду Python командой ``python -m venv venv``.
+6) Запустить виртуальную среду Python командой ``venv\Scripts\activate.bat``.
+7) Установить необходимые библиотеки командой  ``python -m pip install beautifulsoup4>=4.13.4 requests>=2.32.3 tf-keras>=2.19.0 keras-nlp==0.10.0 kagglehub>=0.2.4 keras>=3``.
+8) Подготовить файл с именем и токеном пользователя Kaggle.
+9) Выполнить команду ``mkdir output && python scripts\niikm_parser.py --request-delay 2 --output-dir output\niikm_data && python scripts\gemma_json_generator.py --dataset-path output\niikm_data --kaggle-credentials-path <ФАЙЛ С ДАННЫМИ ПОЛЬЗОВАТЕЛЯ KAGGLE> --output output\gemma_extracted_info.bin && python scripts\json_converter --input output\gemma_extracted_info.bin --user-email <ЭЛЕКТРОННАЯ ПОЧТА> --infores-name "output\Новая база сварочных газов"``.\
+При успешном выполнении будут созданы каталог ``output``, каталог ``output\niikm_data``, содержащий датасет с описаниями сварочных газов, файл ``output\gemma_extracted_info.bin``, содержащий извлечённую из датасета с помощью Google Gemma 2b информацию в упрощённом формате, и файл ``output\Новая база сварочных газов.universal.json``, содержащий извлечённые из датасета данные в формате, пригодном к импорту на платформу.
+10) Выйти из виртуальной среды Python командой ``deactivate``.
+11) Запустить сервис Ollama по инструкции из файла ``scripts\for_ollama\readme.md``.
+12) Выполнить сравнение полученных файлов командой ``python scripts\json_comparator.py --left-json output\gemma_extracted_info.bin --right-json <RIGHT JSON FILE> --output output\comparison_result.txt``. При успешном выполнении данной команды результат сравнения будет сохранён в файле ``output\comparison_result.txt``.
