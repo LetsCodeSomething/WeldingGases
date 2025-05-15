@@ -198,15 +198,24 @@ def convert_to_universal_json(extracted_info,
                 component_node["meta"] = "Компонент"
 
                 chemical_formula_node = deepcopy(non_terminal_node_template)
-                chemical_formula_node["name"] = composition_json["components"][j]["formula"]
-                chemical_formula_node["meta"] = "Химическое обозначение"
-                chemical_formula_node["original"] = CHEMICAL_ELEMENT_PATH_TEMPLATE.format(composition_json["components"][j]["name"],
-                                                                                      composition_json["components"][j]["formula"])
+                
                 #Проверка информации о компоненте на наличие ошибок.
-                if not composition_json["components"][j]["formula"] in CHEMICAL_ELEMENT_LIST:
-                    print("            ПРЕДУПРЕЖДЕНИЕ: Компонент газа \"" + 
-                          composition_json["components"][j]["formula"] + 
-                          "\" не содержится в списке химических элементов. Это вызовет ошибку импорта.")
+                if composition_json["components"][j]["formula"].lower() == "h2o":
+                    print("            ПРЕДУПРЕЖДЕНИЕ: Компонент \"" + 
+                          composition_json["components"][j]["name"] + 
+                          "\" был преобразован в \"Водяные пары\".")
+                    chemical_formula_node["name"] = "Водяные пары"
+                    chemical_formula_node["meta"] = "Водяные пары"
+                else:
+                    chemical_formula_node["name"] = composition_json["components"][j]["formula"]
+                    chemical_formula_node["meta"] = "Химическое обозначение"
+                    chemical_formula_node["original"] = CHEMICAL_ELEMENT_PATH_TEMPLATE.format(composition_json["components"][j]["name"],
+                                                                                          composition_json["components"][j]["formula"])
+
+                    if not composition_json["components"][j]["formula"] in CHEMICAL_ELEMENT_LIST:
+                        print("            ПРЕДУПРЕЖДЕНИЕ: Компонент газа \"" + 
+                              composition_json["components"][j]["formula"] + 
+                              "\" не содержится в списке химических элементов. Это вызовет ошибку импорта.")
             
                 float_component_value = None
                 try:
