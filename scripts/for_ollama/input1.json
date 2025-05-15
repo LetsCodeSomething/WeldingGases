@@ -1,0 +1,27 @@
+{
+  "base_gas": "Кислород",
+  "gas_name": "Кислород газообразный технический",
+  "mark": "1.0",
+  "gas_formula": "O2",
+  "state_standard": "ТУ 2114-010-45905715-2011",
+  "components": [
+    {
+      "name": "Кислород",
+      "formula": "O2",
+      "value": "99,7",
+      "operation": "не менее"
+    },
+    {
+      "name": "Водяной пар",
+      "formula": "H2O",
+      "value": "0,007",
+      "operation": "не более"
+    },
+    {
+      "name": "Водород",
+      "formula": "H2",
+      "value": "0,3",
+      "operation": "не более"
+    }
+  ]
+}
