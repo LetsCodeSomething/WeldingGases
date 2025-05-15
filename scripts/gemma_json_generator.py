@@ -317,22 +317,21 @@ def load_dataset(dataset_path):
 
 #############################
 
-import pickle
 import argparse
 import sys
 
 params = argparse.ArgumentParser(description=
-"""Extracts information about gases from the dataset using Google Gemma 2b and stores it in a binary file.""",
+"""Extracts information about gases from the dataset using Google Gemma 2b and stores it in a text file.""",
 formatter_class=argparse.RawDescriptionHelpFormatter, epilog=
 """EXAMPLE
 
-python gemma_json_generator.py -d dataset.zip -k credentials.json -o output.bin
+python gemma_json_generator.py -d dataset.zip -k credentials.json -o output.json
 
-Decompress "dataset.zip" to "dataset", load files from "dataset", load Kaggle credentials from "credentials.json", extract the data using Google Gemma 2b and save the extracted data into the "output.bin".""")
+Decompress "dataset.zip" to "dataset", load files from "dataset", load Kaggle credentials from "credentials.json", extract the data using Google Gemma 2b and save the extracted data into the "output.json".""")
 
 params.add_argument("-d", "--dataset-path", type=str, help="Path to the dataset. Must be a directory or a zip archive.")
 params.add_argument("-k", "--kaggle-credentials-path", type=argparse.FileType('r'), help="Path to JSON file that contains Kaggle credentials. Credentials have the following structure: {\"username\":\"<STRING>\",\"key\":\"<STRING>\"}")
-params.add_argument("-o", "--output", type=argparse.FileType('wb'), help="An output binary file name. If the parameter is missing, the name will default to \"gemma_extracted_info.bin\".")
+params.add_argument("-o", "--output", type=argparse.FileType('w'), help="An output text file name. If the parameter is missing, the name will default to \"gemma_extracted_info.json\".")
 
 params = params.parse_args()
 
@@ -359,7 +358,7 @@ os.environ["KAGGLE_USERNAME"] = kaggle_credentials["username"]
 os.environ["KAGGLE_KEY"] = kaggle_credentials["key"]
 gemma_lm = keras_nlp.models.GemmaCausalLM.from_preset("gemma_2b_en")
 
-output_file = params.output if params.output else open("gemma_extracted_info.bin", "wb")    
+output_file = params.output if params.output else open("gemma_extracted_info.json", "w")    
 extracted_info = extract_info(gemma_lm, dataset)
-output_file.write(pickle.dumps(extracted_info))
+output_file.write(json.dumps(extracted_info,ensure_ascii=False,indent=4))
 output_file.close()
