@@ -56,15 +56,24 @@
 ## Инструкция для Windows:
 Для запуска и использования необходимо выполнить следующие шаги:
 1) Загрузить и установить Git: <https://git-scm.com/downloads/win> или <https://gitforwindows.org/>.
-2) Выбрать каталог и клонировать репозиторий командой ``git clone https://github.com/LetsCodeSomething/WeldingGases.git``.
+2) Выбрать каталог и клонировать репозиторий командой
+```git clone https://github.com/LetsCodeSomething/WeldingGases.git```.
 3) Загрузить и установить Python: <https://www.python.org/downloads/>.
-4) Пройти в каталог с репозиторием командой ``cd <ПУТЬ К РЕПОЗИТОРИЮ>\WeldingGases``.
-5) Создать виртуальную среду Python командой ``python -m venv venv``.
-6) Запустить виртуальную среду Python командой ``venv\Scripts\activate.bat``.
-7) Установить необходимые библиотеки командой  ``python -m pip install beautifulsoup4>=4.13.4 requests>=2.32.3 tf-keras>=2.19.0 keras-nlp==0.10.0 kagglehub>=0.2.4 keras>=3``.
-8) Подготовить файл с именем и токеном пользователя Kaggle.
-9) Выполнить команду ``mkdir output && python scripts\niikm_parser.py --request-delay 2 --output-dir output\niikm_data && python scripts\gemma_json_generator.py --dataset-path output\niikm_data --kaggle-credentials-path <ФАЙЛ С ДАННЫМИ ПОЛЬЗОВАТЕЛЯ KAGGLE> --output output\gemma_extracted_info.bin && python scripts\json_converter --input output\gemma_extracted_info.bin --user-email <ЭЛЕКТРОННАЯ ПОЧТА> --infores-name "output\Новая база сварочных газов"``.\
+4) Пройти в каталог с репозиторием командой
+```cd <ПУТЬ К РЕПОЗИТОРИЮ>\WeldingGases```.
+5) Создать виртуальную среду Python командой
+```python -m venv venv```.
+6) Запустить виртуальную среду Python командой
+```venv\Scripts\activate.bat```.
+7) Установить необходимые библиотеки командой
+```python -m pip install beautifulsoup4>=4.13.4 requests>=2.32.3 tf-keras>=2.19.0 keras-nlp==0.10.0 kagglehub>=0.2.4 keras>=3```.
+8) Подготовить файл в формате JSON с [токеном пользователя Kaggle](https://www.kaggle.com/docs/api). Структура файла: ``{"username":"<ИМЯ ПОЛЬЗОВАТЕЛЯ>","key":"<КЛЮЧ>"}``. 
+9) Выполнить команду
+```mkdir output && python scripts\niikm_parser.py --request-delay 2 --output-dir output\niikm_data && python scripts\gemma_json_generator.py --dataset-path output\niikm_data --kaggle-credentials-path <ФАЙЛ С ДАННЫМИ ПОЛЬЗОВАТЕЛЯ KAGGLE> --output output\gemma_extracted_info.bin && python scripts\json_converter --input output\gemma_extracted_info.bin --user-email <ЭЛЕКТРОННАЯ ПОЧТА> --infores-name "output\Новая база сварочных газов"```.\
 При успешном выполнении будут созданы каталог ``output``, каталог ``output\niikm_data``, содержащий датасет с описаниями сварочных газов, файл ``output\gemma_extracted_info.bin``, содержащий извлечённую из датасета с помощью Google Gemma 2b информацию в упрощённом формате, и файл ``output\Новая база сварочных газов.universal.json``, содержащий извлечённые из датасета данные в формате, пригодном к импорту на платформу.
-10) Выйти из виртуальной среды Python командой ``deactivate``.
-11) Запустить сервис Ollama по инструкции из файла ``scripts\for_ollama\readme.md``.
-12) Выполнить сравнение полученных файлов командой ``python scripts\json_comparator.py --left-json output\gemma_extracted_info.bin --right-json <RIGHT JSON FILE> --output output\comparison_result.txt``. При успешном выполнении данной команды результат сравнения будет сохранён в файле ``output\comparison_result.txt``.
+10) Выйти из виртуальной среды Python командой```deactivate```.
+11) Запустить сервис Ollama по инструкции из файла
+```scripts\for_ollama\readme.md```.
+12) Выполнить сравнение полученных файлов командой
+```python scripts\json_comparator.py --left-json output\gemma_extracted_info.bin --right-json <RIGHT JSON FILE> --output output\comparison_result.txt```.
+При успешном выполнении данной команды результат сравнения будет сохранён в файле ``output\comparison_result.txt``.
