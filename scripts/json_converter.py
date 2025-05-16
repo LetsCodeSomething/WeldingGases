@@ -29,25 +29,26 @@ def convert_to_atomic(formula: str):
 
 def convert_to_universal_json(extracted_info,
                               user_email: str,
-                              infores_name: str
-                              ):
-    INFORES_PATH = user_email + " / Мой Фонд / " + infores_name + "$;"
-    ONTOLOGY_PATH = user_email + " / Мой Фонд / Загрузки / Онтология базы технологических газов$;"
-    CHEMICAL_ELEMENT_PATH_TEMPLATE = user_email + " / Мой Фонд / Загрузки / База химических элементов$/{:s}/{:s};"
+                              ontology_path: str,
+                              chemical_elements_database_path: str,
+                              output_infores_path: str):
+    ABSOLUTE_OUTPUT_INFORES_PATH = user_email + " / Мой Фонд / " + output_infores_path + "$;"
+    ABSOLUTE_ONTOLOGY_PATH = user_email + " / Мой Фонд / " + ontology_path + "$;"
+    CHEMICAL_ELEMENT_PATH_TEMPLATE = user_email + " / Мой Фонд / " + chemical_elements_database_path + "$/{:s}/{:s};"
 
     root_node = {
-        "title" : infores_name,
+        "title" : output_infores_path[output_infores_path.rfind("/") + 1:],
         "code" : " ", #Должен игнорироваться при импорте.
-        "path" : INFORES_PATH,
+        "path" : ABSOLUTE_OUTPUT_INFORES_PATH,
         "date" : " ", #Должен игнорироваться при импорте.
         "creation" : " ", #Должен игнорироваться при импорте.
         "owner_id" : 0, #Должен игнорироваться при импорте.
         "json_type" : "universal",
-        "ontology" : ONTOLOGY_PATH,
+        "ontology" : ABSOLUTE_ONTOLOGY_PATH,
         "id" : 17940078395396, #Должен игнорироваться при импорте.
-        "name" : infores_name,
+        "name" : output_infores_path[output_infores_path.rfind("/") + 1:],
         "type" : "КОРЕНЬ",
-        "meta" : "Онтология базы технологических газов",
+        "meta" : ontology_path[ontology_path.rfind("/") + 1:],
         "successors" : [
             {
                 "name" : "Моногазы",
@@ -294,18 +295,28 @@ def convert_to_universal_json(extracted_info,
 import argparse
 import sys
 
+def validate_infores_path(infores_path: str):
+    if re.match("^([0-9а-яА-Яa-zA-Z_]| )+(/([0-9а-яА-Яa-zA-Z_]| )+)*$", infores_path):
+        for i in re.split("/", infores_path):
+            if i[0] == ' ' or i[-1] == ' ' or i.find("  ") != -1:
+                return False
+        return True
+    return False
+
 params = argparse.ArgumentParser(description=
 """Reads simplified JSON from the specified text file and converts simplified JSON into universal JSON.""",
 formatter_class=argparse.RawDescriptionHelpFormatter, epilog=
 """EXAMPLE
 
-python json_converter.py -i gemma_extracted_info.json -e example@example -n welding_gases
+python json_converter.py -i gemma_extracted_info.json -e example@example -O "ontology" -c "chemical elements" -o "welding gases"
 
 Read simplified JSON from \"gemma_extracted_info.json\", convert it into universal JSON and save it into \"welding_gases.universal.json\".""")
 
 params.add_argument("-i", "--input", type=argparse.FileType('r',encoding="utf-8"), help="The name of the input text file with simplified JSON structure.")
 params.add_argument("-e", "--user-email", type=str, help="The platform user's email. Required for the generation of the output file.")
-params.add_argument("-n", "--infores-name", type=str, help="Information resource name. Required for the generation of the output file. If the parameter is missing, the name of the information resource will default to \"Новая база сварочных газов\".")
+params.add_argument("-O", "--ontology-path", type=str, help="Ontology information resource name without user email and \"/Мой Фонд/\". Required for the generation of the output file. If the parameter is missing, the name of the ontology information resource will default to \"Онтология базы технологических газов\".")
+params.add_argument("-c", "--chem-db-path", type=str, help="Chemical elements database information resource name without user email and \"/Мой Фонд/\". Required for the generation of the output file. If the parameter is missing, the name of the chemical elements database information resource will default to \"База химических элементов\".")
+params.add_argument("-o", "--output-infores-path", type=str, help="Output information resource name without user email and \"/Мой Фонд/\". Required for the generation of the output file. If the parameter is missing, the name of the output information resource will default to \"Новая база технологических газов\".")
 
 params = params.parse_args()
 
@@ -314,7 +325,15 @@ if not params.input:
 if not params.user_email:
     sys.exit("User email is not specified. Exiting.")
 
-infores_name = params.infores_name if params.infores_name else "Новая база сварочных газов"
+ontology_path = params.ontology_path if params.ontology_path else "Онтология базы технологических газов"
+if not validate_infores_path(ontology_path):
+    sys.exit("Invalid ontology information resource path. Exiting.")
+chem_db_path = params.chem_db_path if params.chem_db_path else "База химических элементов"
+if not validate_infores_path(chem_db_path):
+    sys.exit("Invalid chemical elements database information resource path. Exiting.")
+output_infores_path = params.output_infores_path if params.output_infores_path else "Новая база технологических газов"
+if not validate_infores_path(output_infores_path):
+    sys.exit("Invalid output information resource path. Exiting.")
 
 extracted_info = None 
 try:
@@ -324,11 +343,8 @@ except:
 
 params.input.close()
 
-converted_info = convert_to_universal_json(extracted_info, params.user_email, infores_name)
-
-#print(extracted_info)
-
-f = open(infores_name + ".universal.json", "w", encoding="utf-8")
+converted_info = convert_to_universal_json(extracted_info, params.user_email, ontology_path, chem_db_path, output_infores_path)
+f = open(output_infores_path[output_infores_path.rfind("/") + 1:] + ".universal.json", "w", encoding="utf-8")
 f.write(json.dumps(converted_info, indent=4, ensure_ascii=False))
 f.close()
 
