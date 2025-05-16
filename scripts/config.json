@@ -1,0 +1,26 @@
+{
+    "niikm_parser":
+    {
+        "request_delay": 2,
+        "output_dir": "output\\niikm_data",
+        "zip": "false"
+    },
+    "gemma_json_generator":
+    {
+        "dataset_path": "output\\niikm_data",
+        "kaggle_credentials_path": "",
+        "output": "output\\gemma_extracted_info.json"
+    },
+    "json_comparator":
+    {
+        "left_json": "output\\gemma_extracted_info.json",
+        "right_json": "",
+        "output": "output\\comparison_result.txt"
+    },
+    "json_converter":
+    {
+        "input": "output\\gemma_extracted_info.json",
+        "user_email": "",
+        "infores_name": "output\\Новая база сварочных газов"
+    }
+}
