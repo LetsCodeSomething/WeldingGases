@@ -80,7 +80,10 @@ if (not "left_json" in configuration["json_comparator"] or
 
 if (not "input" in configuration["json_converter"] or
     not "user_email" in configuration["json_converter"] or
-    not "infores_name" in configuration["json_converter"]):
+    not "ontology_path" in configuration["json_converter"] or
+    not "chem_db_path" in configuration["json_converter"] or
+    not "output_infores_path" in configuration["json_converter"] or
+    not "ouptut" in configuration["json_converter"]):
     sys.exit("The specified configuration file contains invalid JSON. Exiting.")
 
 #Check if other scripts exist.
@@ -130,9 +133,13 @@ if process.wait() != 0:
 print("Done.")
 
 print("Running \"json_converter.py\"...")
-process = subprocess.Popen("python \"" + str(json_converter_path) + "\" --input \"" + configuration["json_converter"]["input"] + 
+process = subprocess.Popen("python \"" + str(json_converter_path) + 
+                           "\" --input \"" + configuration["json_converter"]["input"] + 
                            "\" --user-email " + configuration["json_converter"]["user_email"] +
-                           " --infores-name \"" + configuration["json_converter"]["infores_name"] + "\"", 
+                           " --ontology-path \"" + configuration["json_converter"]["ontology_path"] +
+                           "\" --chem-db-path \"" + configuration["json_converter"]["chem_db_path"] +
+                           "\" --infores-name \"" + configuration["json_converter"]["infores_name"] + 
+                           "\" --output \"" + configuration["json_converter"]["output"] + "\"", 
                            encoding="utf-8", shell=True)
 if process.wait() != 0:
     sys.exit("\"json_converter.py\" finished with an error. Exiting.")

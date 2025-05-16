@@ -308,15 +308,16 @@ params = argparse.ArgumentParser(description=
 formatter_class=argparse.RawDescriptionHelpFormatter, epilog=
 """EXAMPLE
 
-python json_converter.py -i gemma_extracted_info.json -e example@example -O "ontology" -c "chemical elements" -o "welding gases"
+python json_converter.py -i gemma_extracted_info.json -e example@example --ontology-path "ontology" --chem-db-path "chemical elements" --output-infores-path "welding gases" --output converted.universal.json
 
-Read simplified JSON from \"gemma_extracted_info.json\", convert it into universal JSON and save it into \"welding_gases.universal.json\".""")
+Read simplified JSON from \"gemma_extracted_info.json\", convert it into universal JSON and save it into \"converted.universal.json\".""")
 
 params.add_argument("-i", "--input", type=argparse.FileType('r',encoding="utf-8"), help="The name of the input text file with simplified JSON structure.")
 params.add_argument("-e", "--user-email", type=str, help="The platform user's email. Required for the generation of the output file.")
-params.add_argument("-O", "--ontology-path", type=str, help="Ontology information resource name without user email and \"/Мой Фонд/\". Required for the generation of the output file. If the parameter is missing, the name of the ontology information resource will default to \"Онтология базы технологических газов\".")
-params.add_argument("-c", "--chem-db-path", type=str, help="Chemical elements database information resource name without user email and \"/Мой Фонд/\". Required for the generation of the output file. If the parameter is missing, the name of the chemical elements database information resource will default to \"База химических элементов\".")
-params.add_argument("-o", "--output-infores-path", type=str, help="Output information resource name without user email and \"/Мой Фонд/\". Required for the generation of the output file. If the parameter is missing, the name of the output information resource will default to \"Новая база технологических газов\".")
+params.add_argument("--ontology-path", type=str, help="Ontology information resource name without user email and \"/Мой Фонд/\". Required for the generation of the output file. If the parameter is missing, the name of the ontology information resource will default to \"Онтология базы технологических газов\".")
+params.add_argument("--chem-db-path", type=str, help="Chemical elements database information resource name without user email and \"/Мой Фонд/\". Required for the generation of the output file. If the parameter is missing, the name of the chemical elements database information resource will default to \"База химических элементов\".")
+params.add_argument("--output-infores-path", type=str, help="Output information resource name without user email and \"/Мой Фонд/\". Required for the generation of the output file. If the parameter is missing, the name of the output information resource will default to \"Новая база технологических газов\".")
+params.add_argument("-o", "--output", type=argparse.FileType('w',encoding="utf-8"), help="Name of the output JSON file. If the parameter is missing, the name of the output file will default to \"converted.universal.json\"")
 
 params = params.parse_args()
 
@@ -344,7 +345,7 @@ except:
 params.input.close()
 
 converted_info = convert_to_universal_json(extracted_info, params.user_email, ontology_path, chem_db_path, output_infores_path)
-f = open(output_infores_path[output_infores_path.rfind("/") + 1:] + ".universal.json", "w", encoding="utf-8")
+f = params.output if params.output else open("converted.universal.json", "w", encoding="utf-8")
 f.write(json.dumps(converted_info, indent=4, ensure_ascii=False))
 f.close()
 

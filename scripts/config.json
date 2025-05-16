@@ -20,7 +20,10 @@
     "json_converter":
     {
         "input": "output\\gemma_extracted_info.json",
-        "user_email": "",
-        "infores_name": "output\\Новая база сварочных газов"
+        "user_email": "testemail@email.ru",
+        "ontology_path": "path / to the / ontology",
+        "chem_db_path": "path / to the / chemical / elements / database",
+        "output_infores_path": "path / to the / output / information / resource",
+        "output": "output\\Новая база сварочных газов.universal.json"
     }
 }
