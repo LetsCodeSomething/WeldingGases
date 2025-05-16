@@ -9,6 +9,7 @@
 * ``gemma_json_generator.py`` - извлекает информацию из датасета, сформированного скриптом ``niikm_parser.py``, с помощью нейронной сети [Google Gemma 2b](https://www.kaggle.com/models/google/gemma) и сохраняет информацию в упрощённом JSON в двоичный файл с помощью стандартного модуля Python ``pickle``. Обратите внимание, что для работы данного скрипта требуется учётная запись Kaggle и дополнительные библиотеки.
 * ``json_converter.py`` - преобразует данные в упрощённом JSON в данные в универсальном JSON и сохраняет результат в текстовый файл. Скрипт ожидает, что файл с онтологией базы сварочных газов находится в подкаталоге ``Загрузки`` фонда пользователя платформы, а файл с самой базой - в корневом каталоге.
 * ``json_comparator.py`` - выполняет сравнение произвольных JSON-структур, генерирует пояснение в терминах онтологии к результатам сравнения и сохраняет результат в текстовый файл.
+* ``run.py`` - считывает параметры для перечисленных выше скриптов из файла формата JSON и последовательно запускает скрипты с указанными в файле параметрами.
 
 Для дальнейших инструкций используйте параметр ``--help`` при запуске скриптов.
 
@@ -24,21 +25,34 @@
 ```
 [
     [
-        {"based_on":"на основе Аргона",
-         "gas_name":"аргон газообразный высокой чистоты марка 4.8",
-         "formula":"Ar",
-         "state_standard":"ТУ 20.11.11-006-45905715-2017 (НИИ КМ), ТУ 6-21-12-94"}
+        {
+            "based_on":"на основе Аргона",
+            "gas_name":"аргон газообразный высокой чистоты марка 4.8",
+            "formula":"Ar",
+            "state_standard":"ТУ 20.11.11-006-45905715-2017 (НИИ КМ), ТУ 6-21-12-94"
+        }
     ], 
     [
-        {"mark":"4.8"}
+        {
+            "mark":"4.8"
+        }
     ], 
     [
-        {"components":[
-                          {"name":"Аргон","formula":"Ar","value":"99.998","operation":"не менее"},
-                          {"name":"Кислород","formula":"O","value":"0.0002","operation":"не более"},
-                          {"name":"Азот","formula":"N","value":"0.001","operation":"не более"},
-                          <и т.д.>
-                      ]}
+        {
+            "components":
+            [
+                {
+                    "name":"Аргон","formula":"Ar","value":"99.998","operation":"не менее"
+                },
+                {
+                    "name":"Кислород","formula":"O","value":"0.0002","operation":"не более"
+                },
+                {
+                    "name":"Азот","formula":"N","value":"0.001","operation":"не более"
+                },
+                <и т.д.>
+            ]
+        }
     ]
 ]
 ```
@@ -57,23 +71,70 @@
 Для запуска и использования необходимо выполнить следующие шаги:
 1) Загрузить и установить Git: <https://git-scm.com/downloads/win> или <https://gitforwindows.org/>.
 2) Выбрать каталог и клонировать репозиторий командой
-```git clone https://github.com/LetsCodeSomething/WeldingGases.git```.
+```
+git clone https://github.com/LetsCodeSomething/WeldingGases.git
+```
+
 3) Загрузить и установить Python: <https://www.python.org/downloads/>.
 4) Пройти в каталог с репозиторием командой
-```cd <ПУТЬ К РЕПОЗИТОРИЮ>\WeldingGases```.
+```
+cd <ПУТЬ К РЕПОЗИТОРИЮ>\WeldingGases
+```
+
 5) Создать виртуальную среду Python командой
-```python -m venv venv```.
+```
+python -m venv venv
+```
+
 6) Запустить виртуальную среду Python командой
-```venv\Scripts\activate.bat```.
+```
+venv\Scripts\activate.bat
+```
+
 7) Установить необходимые библиотеки командой
-```python -m pip install beautifulsoup4>=4.13.4 requests>=2.32.3 tf-keras>=2.19.0 keras-nlp==0.10.0 kagglehub>=0.2.4 keras>=3```.
-8) Подготовить файл в формате JSON с [токеном пользователя Kaggle](https://www.kaggle.com/docs/api). Структура файла: ``{"username":"<ИМЯ ПОЛЬЗОВАТЕЛЯ>","key":"<КЛЮЧ>"}``. 
-9) Выполнить команду
-```mkdir output && python scripts\niikm_parser.py --request-delay 2 --output-dir output\niikm_data && python scripts\gemma_json_generator.py --dataset-path output\niikm_data --kaggle-credentials-path <ФАЙЛ С ДАННЫМИ ПОЛЬЗОВАТЕЛЯ KAGGLE> --output output\gemma_extracted_info.bin && python scripts\json_converter --input output\gemma_extracted_info.bin --user-email <ЭЛЕКТРОННАЯ ПОЧТА> --infores-name "output\Новая база сварочных газов"```.\
-При успешном выполнении будут созданы каталог ``output``, каталог ``output\niikm_data``, содержащий датасет с описаниями сварочных газов, файл ``output\gemma_extracted_info.bin``, содержащий извлечённую из датасета с помощью Google Gemma 2b информацию в упрощённом формате, и файл ``output\Новая база сварочных газов.universal.json``, содержащий извлечённые из датасета данные в формате, пригодном к импорту на платформу.
-10) Выйти из виртуальной среды Python командой```deactivate```.
-11) Запустить сервис Ollama по инструкции из файла
-```scripts\for_ollama\readme.md```.
-12) Выполнить сравнение полученных файлов командой
-```python scripts\json_comparator.py --left-json output\gemma_extracted_info.bin --right-json <RIGHT JSON FILE> --output output\comparison_result.txt```.
-При успешном выполнении данной команды результат сравнения будет сохранён в файле ``output\comparison_result.txt``.
+```
+python -m pip install beautifulsoup4>=4.13.4 requests>=2.32.3 tf-keras>=2.19.0 keras-nlp==0.10.0 kagglehub>=0.2.4 keras>=3
+```
+
+8) Подготовить файл в формате JSON с [токеном пользователя Kaggle](https://www.kaggle.com/docs/api). Структура файла: ``{"username":"<ИМЯ ПОЛЬЗОВАТЕЛЯ>","key":"<КЛЮЧ>"}``.
+9) Подготовить файл в формате JSON с конфигурацией для скриптов. Структура файла:
+```
+{
+    "niikm_parser":
+    {
+        "request_delay": <ИНТЕРВАЛ МЕЖДУ ЗАПРОСАМИ В СЕКУНДАХ>,
+        "output_dir": <КАТАЛОГ>,
+        "zip": <"true"/"false">
+    },
+    "gemma_json_generator":
+    {
+        "dataset_path": <КАТАЛОГ ИЛИ ZIP-АРХИВ>,
+        "kaggle_credentials_path": <ФАЙЛ ИЗ ПУНКТА 8>,
+        "output": <ВЫХОДНОЙ ФАЙЛ>
+    },
+    "json_comparator":
+    {
+        "left_json": <ПЕРВЫЙ ФАЙЛ С УПРОЩЁННЫМ JSON>,
+        "right_json": <ВТОРОЙ ФАЙЛ С УПРОЩЁННЫМ JSON>,
+        "output": <ФАЙЛ С ПОЯСНЕНИЕМ>
+    },
+    "json_converter":
+    {
+        "input": <ФАЙЛ С УПРОЩЁННЫМ JSON>,
+        "user_email": <ЭЛЕКТРОННАЯ ПОЧТА ПОЛЬЗОВАТЕЛЯ ПЛАТФОРМЫ>,
+        "infores_name": <>
+    }
+}
+```
+
+10) Выполнить команду
+```
+python scripts\run.py --config-path <ФАЙЛ С КОНФИГУРАЦИЕЙ>
+```
+
+При успешном выполнении по указанному пути будут созданы каталог ``niikm_data``, содержащий датасет с описаниями сварочных газов, файл ``gemma_extracted_info.json``, содержащий извлечённую из датасета с помощью Google Gemma 2b информацию в упрощённом формате, файл ``comparison_result.txt`` с результатами сравнения ``gemma_extracted_info.json`` и ``<>`` и файл ``Новая база сварочных газов.universal.json``, содержащий извлечённые из датасета данные в формате, пригодном к импорту на платформу.
+
+11) Выйти из виртуальной среды Python командой
+```
+deactivate
+```
