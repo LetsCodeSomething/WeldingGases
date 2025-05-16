@@ -1,5 +1,6 @@
 import json
 from copy import deepcopy
+import re
 
 terminal_node_template =  {
     "value" : "",
@@ -14,10 +15,17 @@ non_terminal_node_template = {
     "successors" : []
 }
 
-CHEMICAL_ELEMENT_LIST = ["Fe", "C",  "Mn", "Si", "Al", "Cr", "Sn", "Sb", "Cu", "As", 
-                         "Zn", "Bi", "Co", "Sm", "Zr", "Ni", "Ti", "V",  "Nb", "S", 
-                         "P",  "Mg", "Pb", "B",  "Mo", "O",  "N",  "H",  "Ce", "Be", 
-                         "He", "Ar", "Ne", "Cd"] 
+CHEMICAL_ELEMENT_LIST = {"Fe": "Железо", "C": "Углерод",  "Mn": "Марганец", "Si": "Кремний", "Al": "Алюминий", 
+                         "Cr": "Хром", "Sn": "Олово", "Sb": "Сурьма", "Cu": "Медь", "As": "Мышьяк", 
+                         "Zn": "Цинк", "Bi": "Висмут", "Co": "Кобальт", "Sm": "Самарий", "Zr": "Цирконий", 
+                         "Ni": "Никель", "Ti": "Титан", "V": "Ванадий",  "Nb": "Ниобий", "S": "Сера", 
+                         "P": "Фосфор",  "Mg": "Магний", "Pb": "Свинец", "B": "Бор",  "Mo": "Молибден", 
+                         "O": "Кислород",  "N": "Азот",  "H": "Водород",  "Ce": "Церий", "Be": "Бериллий", 
+                         "He": "Гелий", "Ar": "Аргон", "Ne": "Неон", "Cd": "Кадмий"} 
+
+#Очистка химической формулы от чисел.
+def convert_to_atomic(formula: str):
+    return re.sub("\\d+", "", formula)
 
 def convert_to_universal_json(extracted_info,
                               user_email: str,
@@ -154,7 +162,14 @@ def convert_to_universal_json(extracted_info,
             gas_formula_node["value"] = basic_info_json["formula"]
             gas_formula_node["valtype"] = "STRING"
             gas_formula_node["meta"] = "Химическое обозначение"
-            gas_formula_node["original"] = CHEMICAL_ELEMENT_PATH_TEMPLATE.format(basic_info_json["gas_name"], basic_info_json["formula"])
+            atomic_formula = convert_to_atomic(basic_info_json["formula"])
+            if atomic_formula in CHEMICAL_ELEMENT_LIST:
+                gas_formula_node["original"] = CHEMICAL_ELEMENT_PATH_TEMPLATE.format(CHEMICAL_ELEMENT_LIST[atomic_formula], 
+                                                                                     basic_info_json["formula"])
+            else:
+                print("    ПРЕДУПРЕЖДЕНИЕ: Главный компонент моногаза \"" + basic_info_json["formula"] + "\" не является химическим элементом. Дальнейшее преобразование информации о газе будет пропущено.")
+                continue
+
             gas_node["successors"].append(gas_formula_node)
         
             #Если у газа есть марка, то создаётся вершина для её хранения.
@@ -184,13 +199,13 @@ def convert_to_universal_json(extracted_info,
                     (not "formula" in composition_json["components"][j]) or
                     (not "value" in composition_json["components"][j]) or
                     (not "operation" in composition_json["components"][j])):
-                    print("            ОШИБКА: Словарь с информацией о компоненте не содержит все необходимые ключи.")
+                    print("        ОШИБКА: Словарь с информацией о компоненте не содержит все необходимые ключи.")
                     continue
                 if (type(composition_json["components"][j]["name"]) != str or
                     type(composition_json["components"][j]["formula"]) != str or
                     type(composition_json["components"][j]["value"]) != str or
                     type(composition_json["components"][j]["operation"])!= str):
-                    print("    ОШИБКА: Все значения ключей в словаре с информацией о компонентах газа должны быть строками.")
+                    print("        ОШИБКА: Все значения ключей в словаре с информацией о компонентах газа должны быть строками.")
                     continue
 
                 component_node = deepcopy(non_terminal_node_template)
@@ -200,8 +215,12 @@ def convert_to_universal_json(extracted_info,
                 chemical_formula_node = deepcopy(non_terminal_node_template)
                 
                 #Проверка информации о компоненте на наличие ошибок.
-                if composition_json["components"][j]["formula"].lower() == "h2o":
-                    print("            ПРЕДУПРЕЖДЕНИЕ: Компонент \"" + 
+                component_name_in_lower_case = composition_json["components"][j]["name"].lower()
+                if (composition_json["components"][j]["formula"].lower() == "h2o" or
+                    component_name_in_lower_case.find("вода") != -1 or
+                    component_name_in_lower_case.find("воды") != -1 or
+                    component_name_in_lower_case.find("водян") != -1):
+                    print("        ПРЕДУПРЕЖДЕНИЕ: Компонент \"" + 
                           composition_json["components"][j]["name"] + 
                           "\" был преобразован в \"Водяные пары\".")
                     chemical_formula_node["name"] = "Водяные пары"
@@ -209,24 +228,27 @@ def convert_to_universal_json(extracted_info,
                 else:
                     chemical_formula_node["name"] = composition_json["components"][j]["formula"]
                     chemical_formula_node["meta"] = "Химическое обозначение"
-                    chemical_formula_node["original"] = CHEMICAL_ELEMENT_PATH_TEMPLATE.format(composition_json["components"][j]["name"],
-                                                                                          composition_json["components"][j]["formula"])
-
-                    if not composition_json["components"][j]["formula"] in CHEMICAL_ELEMENT_LIST:
-                        print("            ПРЕДУПРЕЖДЕНИЕ: Компонент газа \"" + 
+                    
+                    atomic_formula = convert_to_atomic(composition_json["components"][j]["formula"])
+                    if atomic_formula in CHEMICAL_ELEMENT_LIST:
+                        chemical_formula_node["original"] = CHEMICAL_ELEMENT_PATH_TEMPLATE.format(CHEMICAL_ELEMENT_LIST[atomic_formula],
+                                                                                                  composition_json["components"][j]["formula"])
+                    else:
+                        print("        ПРЕДУПРЕЖДЕНИЕ: Компонент газа \"" + 
                               composition_json["components"][j]["formula"] + 
-                              "\" не содержится в списке химических элементов. Это вызовет ошибку импорта.")
+                              "\" не содержится в списке химических элементов. Дальнейшее преобразование информации о компоненте будет пропущено.")
+                        continue
             
                 float_component_value = None
                 try:
                     float_component_value = float(composition_json["components"][j]["value"])
                 except:
-                    print("            ОШИБКА: Не удалось преобразовать содержание компонента газа в процентах в вещественное число (" + 
+                    print("        ОШИБКА: Не удалось преобразовать содержание компонента газа в процентах в вещественное число (" + 
                           composition_json["components"][j]["value"] + ").")
                     continue
 
                 if (float_component_value < 0 or float_component_value > 100):
-                    print("            ПРЕДУПРЕЖДЕНИЕ: Содержание компонента газа в процентах должно находиться в пределах от 0 до 100, но получено " +
+                    print("        ПРЕДУПРЕЖДЕНИЕ: Содержание компонента газа в процентах должно находиться в пределах от 0 до 100, но получено " +
                         float_component_value + ".")
 
                 percent_node = deepcopy(terminal_node_template)
