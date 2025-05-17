@@ -220,31 +220,38 @@ def convert_to_universal_json(extracted_info,
                 if (composition_json["components"][j]["formula"].lower() == "h2o" or
                     component_name_in_lower_case.find("вода") != -1 or
                     component_name_in_lower_case.find("воды") != -1 or
-                    component_name_in_lower_case.find("водян") != -1):
+                    component_name_in_lower_case.find("водян") != -1 or
+                    component_name_in_lower_case.find("влаг") != -1):
                     print("        ПРЕДУПРЕЖДЕНИЕ: Компонент \"" + 
                           composition_json["components"][j]["name"] + 
-                          "\" был преобразован в \"Водяные пары\".")
+                          "\" будет преобразован в \"Водяные пары\".")
                     chemical_formula_node["name"] = "Водяные пары"
                     chemical_formula_node["meta"] = "Водяные пары"
                 else:
-                    chemical_formula_node["name"] = composition_json["components"][j]["formula"]
-                    chemical_formula_node["meta"] = "Химическое обозначение"
-                    
                     atomic_formula = convert_to_atomic(composition_json["components"][j]["formula"])
                     if atomic_formula in CHEMICAL_ELEMENT_LIST:
+                        chemical_formula_node["name"] = atomic_formula
+                        chemical_formula_node["meta"] = "Химическое обозначение"
                         chemical_formula_node["original"] = CHEMICAL_ELEMENT_PATH_TEMPLATE.format(CHEMICAL_ELEMENT_LIST[atomic_formula],
-                                                                                                  composition_json["components"][j]["formula"])
+                                                                                                  atomic_formula)
                     else:
-                        print("        ПРЕДУПРЕЖДЕНИЕ: Компонент газа \"" + 
+                        print("        ПРЕДУПРЕЖДЕНИЕ: Компонент \"" + 
                               composition_json["components"][j]["formula"] + 
-                              "\" не содержится в списке химических элементов. Дальнейшее преобразование информации о компоненте будет пропущено.")
-                        continue
+                              "\" не содержится в списке химических элементов. Компонент будет отнесён к категории \"Прочее\".")
+                        chemical_formula_node["name"] = composition_json["components"][j]["formula"]
+                        chemical_formula_node["meta"] = "Прочее"
             
                 float_component_value = None
+                str_component_value = composition_json["components"][j]["value"]
+                multiplier = 1
+                if str_component_value.find('%') != -1:
+                    print("        ПРЕДУПРЕЖДЕНИЕ: Значение объёмной доли компонента газа содержит знак \"%\". Значение будет преобразовано.")
+                    str_component_value = str_component_value.replace("%","")
+                    multiplier = 0.01
                 try:
-                    float_component_value = float(composition_json["components"][j]["value"])
+                    float_component_value = float(str_component_value) * multiplier
                 except:
-                    print("        ОШИБКА: Не удалось преобразовать содержание компонента газа в процентах в вещественное число (" + 
+                    print("        ОШИБКА: Не удалось преобразовать объёмную долю компонента газа в процентах в вещественное число (" + 
                           composition_json["components"][j]["value"] + ").")
                     continue
 
@@ -275,7 +282,7 @@ def convert_to_universal_json(extracted_info,
                     operation_sign_node["meta"] = "≤"
 
                 value_node = deepcopy(terminal_node_template)
-                value_node["value"] = float(composition_json["components"][j]["value"])
+                value_node["value"] = float_component_value
                 value_node["valtype"] = "REAL"
                 value_node["meta"] = "Числовое значение"
 
