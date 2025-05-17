@@ -11,6 +11,12 @@
         "kaggle_credentials_path": "",
         "output": "output\\gemma_extracted_info.json"
     },
+    "qwen3_json_generator":
+    {
+        "dataset_path": "output\\niikm_data",
+        "kaggle_credentials_path": "",
+        "output": "output\\qwen3_extracted_info.json"
+    },
     "json_comparator":
     {
         "left_json": "output\\gemma_extracted_info.json",

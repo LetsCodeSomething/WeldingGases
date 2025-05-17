@@ -59,6 +59,7 @@ except:
 
 if (not "niikm_parser" in configuration or
     not "gemma_json_generator" in configuration or
+    not "qwen3_json_generator" in configuration or
     not "json_comparator" in configuration or
     not "json_converter" in configuration): 
     sys.exit("The specified configuration file contains invalid JSON. Exiting.")
@@ -71,6 +72,11 @@ if (not "request_delay" in configuration["niikm_parser"] or
 if (not "dataset_path" in configuration["gemma_json_generator"] or
     not "kaggle_credentials_path" in configuration["gemma_json_generator"] or
     not "output" in configuration["gemma_json_generator"]):
+    sys.exit("The specified configuration file contains invalid JSON. Exiting.")
+
+if (not "dataset_path" in configuration["qwen3_json_generator"] or
+    not "kaggle_credentials_path" in configuration["qwen3_json_generator"] or
+    not "output" in configuration["qwen3_json_generator"]):
     sys.exit("The specified configuration file contains invalid JSON. Exiting.")
 
 if (not "left_json" in configuration["json_comparator"] or
@@ -91,6 +97,7 @@ directory_path = os.path.dirname(os.path.abspath(__file__))
 
 niikm_parser_path = os.path.join(directory_path, "niikm_parser.py")
 gemma_json_generator_path = os.path.join(directory_path, "gemma_json_generator.py")
+qwen3_json_generator_path = os.path.join(directory_path, "qwen3_json_generator.py")
 json_comparator_path = os.path.join(directory_path, "json_comparator.py")
 json_converter_path = os.path.join(directory_path, "json_converter.py")
 
@@ -98,6 +105,8 @@ if not os.path.isfile(niikm_parser_path):
     sys.exit("\"niikm_parser.py\" is missing. Exiting.")
 if not os.path.isfile(gemma_json_generator_path):
     sys.exit("\"gemma_json_generator.py\" is missing. Exiting.")
+if not os.path.isfile(qwen3_json_generator_path):
+    sys.exit("\"qwen3_json_generator.py\" is missing. Exiting.")
 if not os.path.isfile(json_comparator_path):
     sys.exit("\"json_comparator.py\" is missing. Exiting.")
 if not os.path.isfile(json_converter_path):
@@ -121,6 +130,15 @@ process = subprocess.Popen("python \"" + str(gemma_json_generator_path) +
                            "\" --output \"" + configuration["gemma_json_generator"]["output"] + "\"", encoding="utf-8", shell=True)
 if process.wait() != 0:
     print("\"gemma_json_generator.py\" finished with an error. Exiting.")
+print("Done.")
+
+print("Running \"qwen3_json_generator.py\"...")
+process = subprocess.Popen("python \"" + str(qwen3_json_generator_path) + 
+                           "\" --dataset-path \"" + configuration["qwen3_json_generator"]["dataset_path"] +
+                           "\" --kaggle-credentials-path \"" + configuration["qwen3_json_generator"]["kaggle_credentials_path"] +
+                           "\" --output \"" + configuration["qwen3_json_generator"]["output"] + "\"", encoding="utf-8", shell=True)
+if process.wait() != 0:
+    print("\"qwen3_json_generator.py\" finished with an error. Exiting.")
 print("Done.")
 
 print("Running \"json_comparator.py\"...")
