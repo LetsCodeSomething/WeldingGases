@@ -1,18 +1,41 @@
-os.environ["KERAS_BACKEND"] = "jax"
-#Avoid memory fragmentation on JAX backend.
-os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"]="1.00"
-
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import kagglehub
 import os
-import keras_nlp
-import keras
 import json
 import zipfile
 
-def extract_gas_basic_info(gemma_lm, sample):
+def generate_response(qwen, prompt):
+    # prepare the model input
+    messages = [{"role": "user", "content": prompt}]
+    text = qwen[1].apply_chat_template(
+        messages,
+        tokenize=False,
+        add_generation_prompt=True,
+        enable_thinking=True # Switches between thinking and non-thinking modes. Default is True.
+    )
+    model_inputs = tokenizer([text], return_tensors="pt").to(qwen[0].device)
+
+    # conduct text completion
+    generated_ids = qwen[0].generate(**model_inputs, max_new_tokens=32768)
+    output_ids = generated_ids[0][len(model_inputs.input_ids[0]):].tolist()
+
+    # parsing thinking content
+    try:
+        # rindex finding 151668 ()
+        index = len(output_ids) - output_ids[::-1].index(151668)
+    except ValueError:
+        index = 0
+
+    thinking_content = tokenizer.decode(output_ids[:index], skip_special_tokens=True).strip("\n")
+    content = tokenizer.decode(output_ids[index:], skip_special_tokens=True)
+    #print(thinking_content)
+    return content
+
+def extract_gas_basic_info(qwen, sample):
     template = """Ты - ИИ-помощник, созданный для поиска информации о свойствах газа в тексте и её преобразовании в формат JSON.
 Оформи ответ на вопрос в соответствии с примером. В ответе должно быть:
 - название основного газа в составе;
-- название газа;
+- полное название газа;
 - химическая формула газа;
 - ГОСТ, задающий требования к качеству газа.
 
@@ -47,18 +70,17 @@ t плавления: -210 °C
 """
     print("        Извлечение основной информации о газе...")
 
-    prompt = template + "\nВОПРОС:\n" + sample + "\nОТВЕТ:"
-    raw_response = gemma_lm.generate(prompt, max_length=1100)
+    raw_response = generate_response(qwen, template + "\nВОПРОС:\n" + sample + "\nОТВЕТ:")
 
-    first_position = raw_response.find("{", raw_response.find("{") + 1)
+    first_position = raw_response.find("{")
     if first_position == -1:
-        print("        ОШИБКА: Gemma не дала ответ. Возможная причина: слишком мало токенов.")
+        print("        ОШИБКА: Qwen3 не дала ответ.")
         print("        Завершено с ошибкой.")
         return None
 
     last_position = raw_response.find("}", first_position)
     if last_position == -1:
-        print("    ОШИБКА: Gemma не сгенерировала корректную запись в формате JSON.")
+        print("    ОШИБКА: Qwen3 не сгенерировала корректную запись в формате JSON.")
         print("        Завершено с ошибкой.")
         return None
 
@@ -70,41 +92,42 @@ t плавления: -210 °C
         print("        ОШИБКА: Не удалось преобразовать основную информацию о газе в JSON-структуру.")
         return None
     
-def extract_gas_mark(gemma_lm, sample):
-    template = """Оформи ответ в соответсвии с примером.
+def extract_gas_mark(qwen, sample):
+    template = """Извлеки марку из названия газа.
+Если марка отсутствует в названии, то вместо марки укажи "Отсутствует".
+Оформи ответ в соответствии с примерами.
 
-ПРИМЕР ВОПРОСА:
+ПРИМЕР ВОПРОСА 1:
 Гелий газообразный высокой чистоты, марка 4.6
 
-ПРИМЕР ОТВЕТА:
+ПРИМЕР ОТВЕТА 1:
 {"mark":"4.6"}
+
+ПРИМЕР ВОПРОСА 2:
+Гелий газообразный высокой чистоты
+
+ПРИМЕР ОТВЕТА 2:
+{"mark":"Отсутствует"}
 
 ВОПРОС:
 """
-    prompt = template + sample + "\n\nОТВЕТ:\n"
-
     print("        Извлечение марки газа...")
-    raw_response = gemma_lm.generate(prompt, max_length=90)
+    raw_response = generate_response(qwen, template + sample + "\n\nОТВЕТ:\n")
 
-    first_position = raw_response.find("{", raw_response.find("{") + 1)
-    if first_position == -1:
-        print("        ОШИБКА: Gemma не дала ответ. Возможная причина: слишком мало токенов.")
-
-    last_position = raw_response.find("}", first_position)
-    if last_position == -1:
-        print("        ОШИБКА: Gemma не сгенерировала корректную запись в формате JSON.")
+    if raw_response.find("{") == -1:
+        print("        ОШИБКА: Qwen3 не дала ответ.")
 
     try:
-        result_json = json.loads(raw_response[first_position:last_position + 1])
+        result_json = json.loads(raw_response)
         print("        Завершено.")
         return result_json
     except:
-        print("        ОШИБКА: Не удалось преобразовать информацию о марке газа в JSON-структуру.")
+        print("        ОШИБКА: Не удалось преобразовать полученную от Qwen3 информацию о марке газа в JSON-структуру.")
         return None
-
-def extract_gas_composition(gemma_lm, sample):
+    
+def extract_gas_composition(qwen, sample):
     template = """Ты - ИИ-помощник, созданный для поиска информации о составе газа в тексте.
-Оформи ответ на вопрос в соответствии с примером. Каждый пункт ответа должен включать:
+Оформи ответ на вопрос строго в соответствии с примером. Каждый пункт ответа должен включать:
 - название компонента газа из вопроса;
 - химическую формулу компонента газа из вопроса;
 - объёмную долю компонента газа из вопроса.
@@ -143,19 +166,16 @@ t плавления: -210 °C
 
 ВОПРОС:
 """
-    #Периодически gemma начинает галлюцинировать. При некоторых вводах она упорно выводит
-    #в ответе информацию про оксид азота, даже если в тексте о нём нет ни слова.
-    #Проблемы также вызывает непоследовательность в формате таблиц.
     print("        Извлечение состава газа...")
     print("            Извлечение состава газа в виде списка...")
 
-    prompt = template + sample + "\nОТВЕТ: "
-    raw_response = gemma_lm.generate(prompt, max_length=1400)
+    raw_response = generate_response(qwen, template + sample + "\nОТВЕТ: ")
+
     composition_list = ""
-    for i in raw_response[raw_response.rfind("ОТВЕТ:")+6:len(raw_response)].split('*'):
+    for i in raw_response.split('*'):
         composition_list += i
     if len(composition_list) == 0:
-        print("            ОШИБКА: Gemma не нашла данные о составе продукта.")
+        print("            ОШИБКА: Qwen3 не нашла данные о составе продукта.")
         print("        Завершено с ошибкой.")
         return None
 
@@ -174,60 +194,21 @@ t плавления: -210 °C
 
 ВОПРОС:
 """
-    prompt = template + composition_list + "\n\nОТВЕТ: "
-    #При слишком большом окне модель начинает выводить ответ несколько раз подряд.
-    response = gemma_lm.generate(prompt, max_length=1500)
+    response = generate_response(qwen, template + composition_list + "\n\nОТВЕТ: ")
 
-    #Магическая последовательность из символов в ответе.
-    index = response.find('{', response.find("ОТВЕТ:"))
-    index2 = None
-    if index == -1:
-        print("            ОШИБКА: Gemma не дала ответ. Возможная причина: слишком мало токенов.")
-        print("        Завершено с ошибкой.")
-        return None
-    else:
-        if response[index] != '{':
-            print("            ОШИБКА: Gemma не сгенерировала корректную запись в формате JSON.")
-            print("        Завершено с ошибкой.")
-            return None
-
-        #Поиск конца записи в формате JSON и проверка скобок с помощью стека.
-        stack = []
-        for i in range(index, len(response)):
-            if response[i] == '{':
-                stack.append('{')
-            elif response[i] == '}':
-                if len(stack) == 0 or stack[-1] != '{':
-                    break
-                else:
-                    stack.pop(-1)
-            elif response[i] == '[':
-                stack.append('[')
-            elif response[i] == ']':
-                if len(stack) == 0 or stack[-1] != '[':
-                    break
-                else:
-                    stack.pop(-1)
-
-            if len(stack) == 0:
-                index2 = i
-                break
-
-        if index2 == None:
-            print(response)
-            print("            ОШИБКА: Gemma не сгенерировала корректную запись в формате JSON.")
-            print("        Завершено с ошибкой.")
-            return None
+    #Особенность конкретно Qwen3. Периодически она выдаёт в ответе ```json<ОТВЕТ>```.
+    if response[0] == '`':
+        response = response[7:len(response) - 3]
 
     try:
-        result_json = json.loads(response[index:index2 + 1])
+        result_json = json.loads(response)
         print("        Завершено.")
         return result_json
     except:
-        print("        ОШИБКА: Не удалось преобразовать информацию о составе газа в JSON-структуру.")
+        print("        ОШИБКА: Не удалось преобразовать полученную от Qwen3 информацию о составе газа в JSON-структуру.")
         return None
     
-def extract_info(gemma_lm, dataset):
+def extract_info(qwen, dataset):
     extracted_info = [[], [], []]
     extraction_error_count = [0, 0, 0]
 
@@ -236,24 +217,20 @@ def extract_info(gemma_lm, dataset):
     for i in range(0,len(dataset)):
         print("    Обработка файла " + str(i) + "/" + str(len(dataset)) + "...")
 
-        extracted_basic_info = extract_gas_basic_info(gemma_lm, dataset[i])
+        extracted_basic_info = extract_gas_basic_info(qwen, dataset[i])
         extracted_info[0].append(extracted_basic_info)
         if extracted_basic_info == None:
             extraction_error_count[0] += 1
         else:
             if "gas_name" in extracted_basic_info:
-                if extracted_basic_info["gas_name"].lower().find("марк") != -1:
-                    extracted_mark = extract_gas_mark(gemma_lm, extracted_basic_info["gas_name"])
-                    extracted_info[1].append(extracted_mark)
-                    if extracted_mark == None:
-                        extraction_error_count[1] += 1
-                else:
-                    extracted_mark = {"mark":"Отсутствует"}
-                    extracted_info[1].append(extracted_mark)
+                extracted_mark = extract_gas_mark(qwen, extracted_basic_info["gas_name"])
+                extracted_info[1].append(extracted_mark)
+                if extracted_mark == None:
+                    extraction_error_count[1] += 1
             else:
                 extracted_info[1].append(None)
 
-        extracted_composition = extract_gas_composition(gemma_lm, dataset[i])
+        extracted_composition = extract_gas_composition(qwen, dataset[i])
         extracted_info[2].append(extracted_composition)
         if extracted_composition == None:
             extraction_error_count[2] += 1
@@ -266,7 +243,6 @@ def extract_info(gemma_lm, dataset):
            + str(extraction_error_count[2])
            + " ошибок извлечения состава)."))
 
-    #print(extracted_info)
     return extracted_info
 
 def load_dataset(dataset_path):
@@ -321,17 +297,17 @@ import argparse
 import sys
 
 params = argparse.ArgumentParser(description=
-"""Extracts information about gases from the dataset using Google Gemma 2b and stores it in a text file.""",
+"""Extracts information about gases from the dataset using Alibaba Qwen3 0.6b and stores it in a text file.""",
 formatter_class=argparse.RawDescriptionHelpFormatter, epilog=
 """EXAMPLE
 
-python gemma_json_generator.py -d dataset.zip -k credentials.json -o output.json
+python qwen3_json_generator.py -d dataset.zip -k credentials.json -o output.json
 
-Decompress "dataset.zip" to "dataset", load files from "dataset", load Kaggle credentials from "credentials.json", extract the data using Google Gemma 2b and save the extracted data into the "output.json".""")
+Decompress "dataset.zip" to "dataset", load files from "dataset", load Kaggle credentials from "credentials.json", extract the data using Alibaba Qwen3 0.6b and save the extracted data into the "output.json".""")
 
 params.add_argument("-d", "--dataset-path", type=str, help="Path to the dataset. Must be a directory or a zip archive.")
 params.add_argument("-k", "--kaggle-credentials-path", type=argparse.FileType('r'), help="Path to JSON file that contains Kaggle credentials. Credentials have the following structure: {\"username\":\"<STRING>\",\"key\":\"<STRING>\"}")
-params.add_argument("-o", "--output", type=argparse.FileType('w'), help="An output text file name. If the parameter is missing, the name will default to \"gemma_extracted_info.json\".")
+params.add_argument("-o", "--output", type=argparse.FileType('w'), help="An output text file name. If the parameter is missing, the name will default to \"qwen3_extracted_info.json\".")
 
 params = params.parse_args()
 
@@ -356,9 +332,11 @@ except:
 
 os.environ["KAGGLE_USERNAME"] = kaggle_credentials["username"]
 os.environ["KAGGLE_KEY"] = kaggle_credentials["key"]
-gemma_lm = keras_nlp.models.GemmaCausalLM.from_preset("gemma_2b_en")
+model_name = kagglehub.model_download("qwen-lm/qwen-3/transformers/0.6b")
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype="auto", device_map="auto")
 
-output_file = params.output if params.output else open("gemma_extracted_info.json", "w")    
-extracted_info = extract_info(gemma_lm, dataset)
+output_file = params.output if params.output else open("qwen3_extracted_info.json", "w")    
+extracted_info = extract_info((model, tokenizer), dataset)
 output_file.write(json.dumps(extracted_info,ensure_ascii=False,indent=4))
 output_file.close()
